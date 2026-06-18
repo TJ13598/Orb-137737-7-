@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050814">
+<title>Mind Orb</title>
+<style>
+*{box-sizing:border-box}
+html,body{
+margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+background:#050814;color:#fff;
+}
+body{
+background:radial-gradient(circle at top,#102040,#050814 55%,#000);
+}
+#app{height:100vh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;}
+.hero{
+height:42vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
+}
+#orb{
+width:140px;height:140px;border-radius:50%;
+background:radial-gradient(circle at 30% 30%,#b9ffff,#53d6ff 30%,#1b3f8d 70%,#081228);
+box-shadow:0 0 40px #5fe3ff,0 0 100px #2d8cff;
+animation:pulse 4s ease-in-out infinite;
+transition:.5s;
+}
+@keyframes pulse{
+50%{transform:scale(1.08)}
+}
+h1{margin:14px 0 4px;font-size:1.6rem}
+#level{opacity:.8}
+.stats{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;padding:12px;
+}
+.card{
+background:rgba(255,255,255,.06);
+border-radius:14px;padding:10px;text-align:center;
+backdrop-filter:blur(8px);
+}
+#history{
+flex:1;overflow:auto;padding:0 12px 12px;
+}
+.entry{
+background:rgba(255,255,255,.05);
+margin-bottom:8px;padding:10px;border-radius:12px;
+font-size:.9rem;
+}
+#form{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:6px;
+padding:10px;
+background:rgba(0,0,0,.35);
+backdrop-filter:blur(10px);
+}
+#form input{
+padding:10px;border:none;border-radius:10px;
+}
+#learned{grid-column:span 2}
+button{
+grid-column:span 2;
+padding:12px;border:none;border-radius:12px;
+font-weight:700;
+background:#56ddff;
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="hero">
+<div id="orb"></div>
+<h1>Mind Orb</h1>
+<div id="level">Level 1</div>
+</div>
+
+<div class="stats">
+<div class="card"><div>Total Minutes</div><strong id="minutes">0</strong></div>
+<div class="card"><div>Sessions</div><strong id="sessions">0</strong></div>
+<div class="card"><div>Current Streak</div><strong id="streak">0</strong></div>
+<div class="card"><div>Longest Streak</div><strong id="longest">0</strong></div>
+</div>
+
+<div id="history"></div>
+
+<div id="form">
+<input id="mins" type="number" placeholder="Minutes">
+<input id="place" placeholder="Place">
+<input id="mood" placeholder="Mood">
+<input id="learned" placeholder="What did you learn?">
+<button id="logBtn">Log Meditation</button>
+</div>
+</div>
+
+<script>
+const today=()=>new Date().toISOString().slice(0,10);
+let data=JSON.parse(localStorage.getItem("mindOrbData"))||{
+minutes:0,sessions:[],streak:0,longest:0,lastDate:null
+};
+
+function levelFromMinutes(m){return Math.floor(Math.sqrt(m/20))+1;}
+
+function update(){
+document.getElementById("minutes").textContent=data.minutes;
+document.getElementById("sessions").textContent=data.sessions.length;
+document.getElementById("streak").textContent=data.streak;
+document.getElementById("longest").textContent=data.longest;
+
+const lvl=levelFromMinutes(data.minutes);
+document.getElementById("level").textContent="Level "+lvl;
+
+const orb=document.getElementById("orb");
+const size=Math.min(280,140+lvl*4);
+orb.style.width=size+"px";
+orb.style.height=size+"px";
+
+if(lvl>25){orb.style.filter="hue-rotate(60deg)";}
+if(lvl>50){orb.style.filter="hue-rotate(140deg)";}
+if(lvl>100){orb.style.filter="hue-rotate(220deg)";}
+
+const history=document.getElementById("history");
+history.innerHTML="";
+[...data.sessions].reverse().forEach(s=>{
+const div=document.createElement("div");
+div.className="entry";
+div.textContent=`${s.date} • ${s.mins}m • ${s.place} • ${s.mood} • ${s.learned}`;
+history.appendChild(div);
+});
+
+localStorage.setItem("mindOrbData",JSON.stringify(data));
+}
+
+document.getElementById("logBtn").onclick=()=>{
+const mins=parseInt(document.getElementById("mins").value);
+if(!mins) return;
+
+const d=today();
+
+if(data.lastDate!==d){
+if(data.lastDate){
+const diff=(new Date(d)-new Date(data.lastDate))/86400000;
+if(diff===1) data.streak++;
+else if(diff>1) data.streak=1;
+}else{
+data.streak=1;
+}
+data.longest=Math.max(data.longest,data.streak);
+data.lastDate=d;
+}
+
+data.minutes+=mins;
+data.sessions.push({
+date:d,
+mins,
+place:document.getElementById("place").value,
+mood:document.getElementById("mood").value,
+learned:document.getElementById("learned").value
+});
+
+document.querySelectorAll("input").forEach(i=>i.value="");
+update();
+};
+
+update();
+</script>
+</body>
+</html>
